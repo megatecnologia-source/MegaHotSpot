@@ -5,7 +5,7 @@
 -- Superadmin
 INSERT INTO `superadmins` (`email`, `password_hash`) VALUES (
   'admin@megatecnologias.com',
-  'GERAR_HASH_DE_superadmin123'
+  '$2y$12$PTfA0RGAjS6pAlX9gqOr8eEk2TiU2X1TnbYelyPrYBx/e9qE04vhy'
 );
 
 -- Estabelecimento de teste (com branding e LGPD de exemplo)
@@ -19,7 +19,7 @@ INSERT INTO `estabelecimentos` (
   'Bar do Teste',
   '',
   'barteste@megatecnologias.com',
-  'GERAR_HASH_DE_admin123',
+  '$2y$12$/gWGvqgnywWBpmfUckgtpua3HNbH6VwIc.ftdtrMH29MgiHna2Ixe',
   '192.168.88.1', 443, 'api-megahotspot', 'senhateste', 'hotspot-guest',
   '#6C63FF', '#4CAF50', '#0f0f1a', '#1a1a3e',
   'Bem-vindo ao Bar do Teste! Wi-Fi grátis para você.',

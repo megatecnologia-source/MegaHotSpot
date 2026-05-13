@@ -29,7 +29,7 @@ class DB
                 self::$instance->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
             } catch (PDOException $e) {
                 // Log the real error to a file if needed, but not on screen
-                throw new Exception("Erro PDO: " . $e->getMessage());
+                throw new Exception("Falha na conexão com o banco de dados.");
             }
         }
         return self::$instance;
