@@ -344,7 +344,7 @@ Este script deve ser cadastrado em **cada MikroTik de cliente**. Substitua os do
 :local clienteToken "SUBSTITUIR_PELO_TOKEN_UUID_DO_CLIENTE"
 
 # --- 1. Buscar usuários pendentes ---
-:local resPendentes [/tool fetch \
+:local resPendentes [/tool fetch check-certificate=no \
     url=($apiBase . "/pending_users.php") \
     http-method=get \
     http-header-field="X-Auth-Token: $clienteToken" \
@@ -414,7 +414,7 @@ Este script deve ser cadastrado em **cada MikroTik de cliente**. Substitua os do
 # --- 3. Confirmar sincronização para o servidor central ---
 :local bodyConfirm ("{\"usernames\":[" . $confirmados . "]}")
 
-/tool fetch \
+/tool fetch check-certificate=no \
     url=($apiBase . "/confirm_sync.php") \
     http-method=post \
     http-header-field="X-Auth-Token: $clienteToken\r\nContent-Type: application/json" \
