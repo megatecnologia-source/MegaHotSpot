@@ -70,9 +70,10 @@ try {
 
     $estabelecimentoId = $estabelecimento['id'];
 
-    // Extrai os campos do Lead
+    // Extrai os campos do Lead e limpa o CPF
     $nome           = $input['nome'] ?? null;
-    $cpf            = $input['cpf'] ?? null;
+    $cpfOriginal    = $input['cpf'] ?? null;
+    $cpf            = preg_replace('/\D/', '', $cpfOriginal); // Garante apenas números para o ID único
     $whatsapp       = $input['whatsapp'] ?? null;
     $email          = $input['email'] ?? null;
     $mac            = $input['mac'] ?? null;

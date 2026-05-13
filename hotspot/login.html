@@ -296,12 +296,15 @@
                     senha_hotspot: senha4
                 })
             });
-            // Prossegue mesmo se falhar (Graceful degradation)
         } catch (err) {
             console.error('API Error:', err);
         }
 
-        fazerLoginMikroTik(cpf, senha4);
+        // Delay de 8 segundos para dar tempo ao MikroTik Sync (Pull Mode)
+        showAlert('Cadastro realizado! Preparando sua conexão, aguarde alguns segundos...', 'info');
+        setTimeout(() => {
+            fazerLoginMikroTik(cpf, senha4);
+        }, 8000);
     });
 
     // Submissão: Retorno
