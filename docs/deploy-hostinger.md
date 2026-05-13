@@ -25,7 +25,25 @@ Este guia detalha o processo de deploy da plataforma Mega Hotspot SaaS em ambien
 
 ---
 
-## Passo 3 — Upload dos arquivos via FTP/Gerenciador
+## Passo 3 — Deploy Automático via Git (Recomendado)
+
+Em vez de subir arquivos manualmente via FTP, utilize a integração nativa da Hostinger com o GitHub:
+
+1.  **Acessar a ferramenta Git:** hPanel → Hospedagem → Gerenciar → Avançado → Git.
+2.  **Configurar Repositório:**
+    *   **Repository URL:** `https://github.com/megatecnologia-source/MegaHotSpot.git`
+    *   **Branch:** `main`
+    *   **Install Directory:** Deixe em branco para instalar na raiz (`public_html/`).
+3.  **Configurar Webhook para Auto-Deploy:**
+    *   Após configurar o repositório, clique em **"Auto Deployment"**.
+    *   Copie a **Webhook URL** gerada pela Hostinger.
+    *   Vá ao seu repositório no GitHub → Settings → Webhooks → Add webhook.
+    *   Cole a URL, selecione `application/json` e escolha o evento `Just the push event`.
+    *   Clique em **Add webhook**. Agora, cada `git push` na `main` atualizará o servidor automaticamente.
+
+---
+
+## Passo 4 — Upload Manual (Alternativa)
 Estrutura no servidor (dentro de `public_html/`):
 ```
 public_html/

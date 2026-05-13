@@ -3,7 +3,8 @@
  * api/v1/gerar_pacote.php
  * Gera um arquivo ZIP personalizado para o MikroTik do cliente.
  */
-session_start();
+require_once __DIR__ . '/../../config/security.php';
+secure_session_start();
 
 if (!isset($_SESSION['superadmin_id'])) {
     http_response_code(401);

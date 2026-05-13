@@ -105,7 +105,10 @@ async function toggleAtivo(id) {
     try {
         const res = await fetch('../api/v1/estabelecimento_toggle.php', {
             method: 'POST',
-            headers: {'Content-Type':'application/json'},
+            headers: {
+                'Content-Type':'application/json',
+                'X-CSRF-TOKEN': '<?= $_SESSION['csrf_token'] ?>'
+            },
             body: JSON.stringify({id})
         });
         const data = await res.json();

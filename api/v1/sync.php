@@ -4,6 +4,18 @@
  * Recebe o lead do portal captivo, salva no banco e sincroniza com o MikroTik.
  */
 header('Content-Type: application/json');
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+
+// CORS básico - Ajustar conforme domínio real em produção
+header('Access-Control-Allow-Origin: *'); 
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, X-Auth-Token');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    exit;
+}
 
 // Aceita apenas POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

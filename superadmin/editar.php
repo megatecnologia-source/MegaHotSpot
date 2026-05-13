@@ -210,7 +210,10 @@ document.getElementById('formEditar').addEventListener('submit', async (e) => {
         const res = await fetch('../api/v1/estabelecimento_update.php', {
             method: 'POST',
             body: JSON.stringify(Object.fromEntries(formData)),
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '<?= $_SESSION['csrf_token'] ?>'
+            }
         });
         const data = await res.json();
         if (data.status === 'success') {
@@ -242,7 +245,14 @@ document.getElementById('btnTestRouter').addEventListener('click', async () => {
     btn.disabled = true;
 
     try {
-        const res = await fetch(`../api/v1/router_test.php?id=<?= $id ?>`);
+        const res = await fetch(`../api/v1/router_test.php`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '<?= $_SESSION['csrf_token'] ?>'
+            },
+            body: JSON.stringify({id: <?= $id ?>})
+        });
         const data = await res.json();
         if (data.status === 'success') {
             alert.className = 'alert alert-success';

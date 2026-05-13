@@ -225,7 +225,10 @@ document.getElementById('formNovo').addEventListener('submit', async (e) => {
         const res = await fetch('../api/v1/estabelecimento_create.php', {
             method: 'POST',
             body: JSON.stringify(Object.fromEntries(formData)),
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '<?= $_SESSION['csrf_token'] ?>'
+            }
         });
         
         const data = await res.json();

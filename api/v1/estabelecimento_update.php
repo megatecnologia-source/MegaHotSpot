@@ -3,7 +3,8 @@
  * api/v1/estabelecimento_update.php
  * Endpoint para atualização de estabelecimentos.
  */
-session_start();
+require_once __DIR__ . '/../../config/security.php';
+secure_session_start();
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['superadmin_id'])) {
@@ -11,6 +12,9 @@ if (!isset($_SESSION['superadmin_id'])) {
     echo json_encode(["status" => "error", "message" => "Não autorizado."]);
     exit;
 }
+
+// Validação CSRF
+validate_csrf_token();
 
 require_once __DIR__ . '/../../config/db.php';
 

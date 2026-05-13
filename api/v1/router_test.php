@@ -3,7 +3,8 @@
  * api/v1/router_test.php
  * Testa a conexão com o MikroTik de um estabelecimento.
  */
-session_start();
+require_once __DIR__ . '/../../config/security.php';
+secure_session_start();
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['superadmin_id'])) {
@@ -12,10 +13,15 @@ if (!isset($_SESSION['superadmin_id'])) {
     exit;
 }
 
+// Validação CSRF
+validate_csrf_token();
+
 require_once __DIR__ . '/../../config/db.php';
 require_once __DIR__ . '/router.php';
 
-$id = (int) ($_GET['id'] ?? 0);
+$input = json_decode(file_get_contents('php://input'), true);
+$id    = (int) ($input['id'] ?? 0);
+
 if ($id <= 0) {
     echo json_encode(["status" => "error", "message" => "ID inválido."]);
     exit;
