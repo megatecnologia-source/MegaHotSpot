@@ -15,8 +15,8 @@ class DB
     {
         if (self::$instance === null) {
             $host = getenv('DB_HOST') ?: '127.0.0.1';
-            $db = getenv('DB_NAME') ?: 'mega_hotspot';
-            $user = getenv('DB_USER') ?: 'manu';
+            $db = getenv('DB_NAME') ?: 'u237873674_MegaHotSpot';
+            $user = getenv('DB_USER') ?: 'u237873674_dbadmin';
             $pass = getenv('DB_PASS') ?: '@3m4NU3l09';
             $charset = 'utf8mb4';
 
