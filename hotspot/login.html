@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="pragma" content="no-cache" />
+    <meta http-equiv="expires" content="-1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wi-Fi — $(if error)Erro$(else)Conectar$(endif)</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- 1. CHAP: form oculto de submissão ao MikroTik -->
+    $(if chap-id)
+    <form name="sendin" action="$(link-login-only)" method="post" style="display:none">
+        <input type="hidden" name="username" id="h-username" />
+        <input type="hidden" name="password" id="h-password" />
+        <input type="hidden" name="dst" value="$(link-orig)" />
+        <input type="hidden" name="popup" value="true" />
+    </form>
+    <script src="/md5.js"></script>
+    $(endif)
+
+    <!-- 2. Bloco de configuração por cliente (HOTSPOT_CONFIG) -->
+    <script>
+    const HOTSPOT_CONFIG = {
+        // Integração API
+        apiUrl : "https://api.megatecnologias.com/api/v1/sync.php",
+        token  : "UUID-DO-ESTABELECIMENTO",
+
+        // Identidade visual
+        nome          : "Nome do Estabelecimento",
+        logoUrl       : "https://api.megatecnologias.com/logos/nome-slug.png",
+        corPrimaria   : "#6C63FF",  // botões, abas ativas, links, foco
+        corSecundaria : "#4CAF50",
+        corFundo1     : "#0f0f1a",  // início do gradiente de fundo
+        corFundo2     : "#1a1a3e",  // fim do gradiente de fundo
+        boasVindas    : "Bem-vindo! Conecte-se ao Wi-Fi grátis.",
+
+        // LGPD (Lei 13.709/2018)
+        lgpd: {
+            nomeEmpresa : "Empresa Ltda.",
+            cnpj        : "00.000.000/0001-00",
+            emailDpo    : "privacidade@empresa.com.br",
+            urlPolitica : "",  // vazio se não tiver página própria
+            textoConsentimento: "Autorizo o uso dos meus dados (nome, CPF, WhatsApp e e-mail) "
+                + "por <strong>Empresa Ltda.</strong> para fins de comunicação comercial e "
+                + "relacionamento, conforme a <strong>LGPD — Lei 13.709/2018</strong>.",
+            textoRodape : "Dados protegidos. Não compartilhamos com terceiros sem autorização."
+        }
+    };
+    </script>
+
+    <!-- 3. Interface principal -->
+    <div class="hs-wrapper">
+        <div class="hs-card">
+
+            <!-- Cabeçalho -->
+            <div class="hs-header">
+                <img id="hs-logo" src="" alt="" class="hs-logo hidden" />
+                <h1 class="hs-nome-estab"></h1>
+                <p class="hs-subtitulo"></p>
+            </div>
+
+            <!-- Abas -->
+            <div class="hs-tabs">
+                <button class="hs-tab-btn active" data-tab="novo">Primeiro Acesso</button>
+                <button class="hs-tab-btn" data-tab="retorno">Já tenho cadastro</button>
+            </div>
+
+            <!-- Mensagem de erro do MikroTik -->
+            $(if error)
+            <div class="hs-alert hs-alert-error">$(error)</div>
+            $(endif)
+
+            <!-- Alerta dinâmico JS -->
+            <div id="js-alert" class="hs-alert hidden"></div>
+
+            <!-- ABA: Primeiro Acesso -->
+            <div id="tab-novo" class="hs-tab-content active">
+                <form id="form-novo" novalidate>
+                    <div class="hs-field">
+                        <label for="f-nome">Nome completo</label>
+                        <input type="text" id="f-nome" name="nome" placeholder="Seu nome completo" autocomplete="name" required />
+                    </div>
+                    <div class="hs-field">
+                        <label for="f-cpf">CPF</label>
+                        <input type="tel" id="f-cpf" name="cpf" placeholder="000.000.000-00" maxlength="14" required />
+                    </div>
+                    <div class="hs-field">
+                        <label for="f-whatsapp">WhatsApp (com DDD)</label>
+                        <input type="tel" id="f-whatsapp" name="whatsapp" placeholder="(11) 99999-0000" maxlength="15" required />
+                    </div>
+                    <div class="hs-field">
+                        <label for="f-email">E-mail <span class="opt">(opcional)</span></label>
+                        <input type="email" id="f-email" name="email" placeholder="seu@email.com" autocomplete="email" />
+                    </div>
+
+                    <!-- Bloco LGPD (Injetado via JS ou fixo) -->
+                    <div id="lgpd-container"></div>
+
+                    <button type="submit" id="btn-novo" class="hs-btn-primary">
+                        <span class="btn-text">Quero o Wi-Fi Grátis!</span>
+                        <span class="btn-spinner hidden"></span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- ABA: Já tenho cadastro -->
+            <div id="tab-retorno" class="hs-tab-content hidden">
+                <form id="form-retorno" novalidate>
+                    <div class="hs-field">
+                        <label for="r-cpf">CPF</label>
+                        <input type="tel" id="r-cpf" name="cpf" placeholder="000.000.000-00" maxlength="14" required />
+                    </div>
+                    <div class="hs-field">
+                        <label for="r-senha">Senha (4 últimos dígitos do WhatsApp)</label>
+                        <input type="password" id="r-senha" name="senha" placeholder="••••" maxlength="4" pattern="\d{4}" required />
+                    </div>
+                    <button type="submit" id="btn-retorno" class="hs-btn-primary">
+                        <span class="btn-text">Conectar</span>
+                        <span class="btn-spinner hidden"></span>
+                    </button>
+                </form>
+                <p class="hs-link-alt">
+                    Trocou de celular? 
+                    <a href="#" id="link-recadastro">Faça novo cadastro</a>
+                </p>
+            </div>
+
+        </div><!-- /.hs-card -->
+    </div><!-- /.hs-wrapper -->
+
+    <script>
+    // --- LÓGICA DO PORTAL CAPTIVO ---
+
+    function apenasNumeros(str) { return str.replace(/\D/g, ''); }
+    function ultimosN(str, n) { const s = apenasNumeros(str); return s.slice(-n); }
+
+    // Máscaras
+    function aplicarMascaraCPF(input) {
+        input.addEventListener('input', () => {
+            let v = apenasNumeros(input.value).slice(0, 11);
+            v = v.replace(/(\d{3})(\d)/, '$1.$2');
+            v = v.replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3');
+            v = v.replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4');
+            input.value = v;
+        });
+    }
+
+    function aplicarMascaraWhatsApp(input) {
+        input.addEventListener('input', () => {
+            let v = apenasNumeros(input.value).slice(0, 11);
+            if (v.length > 2) v = '(' + v.slice(0,2) + ') ' + v.slice(2);
+            if (v.length > 10) v = v.slice(0,10) + '-' + v.slice(10);
+            input.value = v;
+        });
+    }
+
+    function validarCPF(cpf) {
+        cpf = apenasNumeros(cpf);
+        if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+        let soma = 0;
+        for (let i = 0; i < 9; i++) soma += parseInt(cpf[i]) * (10 - i);
+        let r = (soma * 10) % 11; if (r === 10 || r === 11) r = 0;
+        if (r !== parseInt(cpf[9])) return false;
+        soma = 0;
+        for (let i = 0; i < 10; i++) soma += parseInt(cpf[i]) * (11 - i);
+        r = (soma * 10) % 11; if (r === 10 || r === 11) r = 0;
+        return r === parseInt(cpf[10]);
+    }
+
+    function showAlert(msg, tipo = 'error') {
+        const el = document.getElementById('js-alert');
+        el.textContent = msg;
+        el.className = 'hs-alert hs-alert-' + tipo;
+        el.classList.remove('hidden');
+    }
+
+    function hideAlert() { document.getElementById('js-alert').classList.add('hidden'); }
+
+    function setLoading(btnEl, loading) {
+        btnEl.querySelector('.btn-text').classList.toggle('hidden', loading);
+        btnEl.querySelector('.btn-spinner').classList.toggle('hidden', !loading);
+        btnEl.disabled = loading;
+    }
+
+    function fazerLoginMikroTik(cpf, senha) {
+        cpf = apenasNumeros(cpf);
+        $(if chap-id)
+        document.getElementById('h-username').value = cpf;
+        document.getElementById('h-password').value = hexMD5('$(chap-id)' + senha + '$(chap-challenge)');
+        document.sendin.submit();
+        $(else)
+        const f = document.createElement('form');
+        f.method = 'post'; f.action = '$(link-login-only)';
+        const addInput = (name, val) => { const i = document.createElement('input'); i.type='hidden'; i.name=name; i.value=val; f.appendChild(i); };
+        addInput('username', cpf);
+        addInput('password', senha);
+        addInput('dst', '$(link-orig)');
+        document.body.appendChild(f);
+        f.submit();
+        $(endif)
+    }
+
+    // Inicialização da UI e Branding
+    function initUI() {
+        document.querySelector('.hs-nome-estab').textContent = HOTSPOT_CONFIG.nome;
+        document.querySelector('.hs-subtitulo').textContent = HOTSPOT_CONFIG.boasVindas;
+        
+        if (HOTSPOT_CONFIG.logoUrl) {
+            const img = document.getElementById('hs-logo');
+            img.src = HOTSPOT_CONFIG.logoUrl;
+            img.alt = HOTSPOT_CONFIG.nome;
+            img.classList.remove('hidden');
+        }
+
+        // Aplicar Cores
+        const root = document.documentElement;
+        if (HOTSPOT_CONFIG.corPrimaria) root.style.setProperty('--cor-primaria', HOTSPOT_CONFIG.corPrimaria);
+        if (HOTSPOT_CONFIG.corSecundaria) root.style.setProperty('--cor-secundaria', HOTSPOT_CONFIG.corSecundaria);
+        if (HOTSPOT_CONFIG.corFundo1 && HOTSPOT_CONFIG.corFundo2) {
+            document.body.style.background = `linear-gradient(135deg, ${HOTSPOT_CONFIG.corFundo1} 0%, ${HOTSPOT_CONFIG.corFundo2} 100%)`;
+        }
+
+        // Renderizar LGPD
+        const lgpd = HOTSPOT_CONFIG.lgpd;
+        if (lgpd) {
+            const html = `
+                <div class="hs-lgpd-bloco">
+                    <label class="hs-lgpd-check">
+                        <input type="checkbox" id="lgpd-consent" required />
+                        <span>${lgpd.textoConsentimento}</span>
+                    </label>
+                    <p class="hs-lgpd-rodape">${lgpd.textoRodape}</p>
+                </div>
+            `;
+            document.getElementById('lgpd-container').innerHTML = html;
+        }
+
+        // Aplicar Máscaras
+        aplicarMascaraCPF(document.getElementById('f-cpf'));
+        aplicarMascaraCPF(document.getElementById('r-cpf'));
+        aplicarMascaraWhatsApp(document.getElementById('f-whatsapp'));
+    }
+
+    // Alternância de abas
+    document.querySelectorAll('.hs-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.hs-tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.hs-tab-content').forEach(c => {
+                c.classList.add('hidden'); c.classList.remove('active');
+            });
+            btn.classList.add('active');
+            const tab = document.getElementById('tab-' + btn.dataset.tab);
+            tab.classList.remove('hidden'); tab.classList.add('active');
+        });
+    });
+
+    document.getElementById('link-recadastro').addEventListener('click', e => {
+        e.preventDefault();
+        document.querySelector('[data-tab="novo"]').click();
+    });
+
+    // Submissão: Novo Cadastro
+    document.getElementById('form-novo').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        hideAlert();
+
+        const nome     = document.getElementById('f-nome').value.trim();
+        const cpf      = document.getElementById('f-cpf').value.trim();
+        const whatsapp = document.getElementById('f-whatsapp').value.trim();
+        const email    = document.getElementById('f-email').value.trim();
+        const btn      = document.getElementById('btn-novo');
+        const consent  = document.getElementById('lgpd-consent');
+
+        if (!nome) { showAlert('Informe seu nome completo.'); return; }
+        if (!validarCPF(cpf)) { showAlert('CPF inválido.'); return; }
+        const wNums = apenasNumeros(whatsapp);
+        if (wNums.length < 10 || wNums.length > 11) { showAlert('WhatsApp inválido.'); return; }
+        if (consent && !consent.checked) { showAlert('Você precisa aceitar os termos LGPD.'); return; }
+
+        const senha4 = ultimosN(whatsapp, 4);
+        setLoading(btn, true);
+
+        try {
+            const res = await fetch(HOTSPOT_CONFIG.apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Auth-Token': HOTSPOT_CONFIG.token
+                },
+                body: JSON.stringify({
+                    nome, cpf, whatsapp: wNums, email,
+                    mac: '$(mac)',
+                    senha_hotspot: senha4
+                })
+            });
+            // Prossegue mesmo se falhar (Graceful degradation)
+        } catch (err) {
+            console.error('API Error:', err);
+        }
+
+        fazerLoginMikroTik(cpf, senha4);
+    });
+
+    // Submissão: Retorno
+    document.getElementById('form-retorno').addEventListener('submit', function(e) {
+        e.preventDefault();
+        hideAlert();
+        const cpf   = document.getElementById('r-cpf').value.trim();
+        const senha = document.getElementById('r-senha').value.trim();
+        if (!validarCPF(cpf)) { showAlert('CPF inválido.'); return; }
+        if (!/^\d{4}$/.test(senha)) { showAlert('A senha deve ter 4 dígitos.'); return; }
+        fazerLoginMikroTik(cpf, senha);
+    });
+
+    document.addEventListener('DOMContentLoaded', initUI);
+    </script>
+</body>
+</html>
