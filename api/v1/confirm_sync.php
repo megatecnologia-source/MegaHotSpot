@@ -1,72 +1,54 @@
 <?php
 /**
  * api/v1/confirm_sync.php
- * Chamado pelo Scheduler do MikroTik após criar os usuários localmente.
- * Marca leads como 'synced' no banco central.
+ * Recebe uma lista de usernames do MikroTik e marca como 'synced' no banco.
  */
+require_once __DIR__ . '/../../config/security.php';
 header('Content-Type: application/json');
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(["status" => "error"]);
+$token = $_SERVER['HTTP_X_AUTH_TOKEN'] ?? '';
+$input = json_decode(file_get_contents('php://input'), true);
+
+if (empty($token) || empty($input['usernames'])) {
+    http_response_code(400);
+    echo json_encode(["status" => "error", "message" => "Dados inválidos."]);
     exit;
 }
 
 require_once __DIR__ . '/../../config/db.php';
 
-$token = $_SERVER['HTTP_X_AUTH_TOKEN'] ?? '';
-if (empty($token)) {
-    http_response_code(401);
-    echo json_encode(["status" => "error", "message" => "Token ausente."]);
-    exit;
-}
-
-$input = json_decode(file_get_contents('php://input'), true);
-$usernames = $input['usernames'] ?? [];
-
-if (empty($usernames) || !is_array($usernames)) {
-    http_response_code(400);
-    echo json_encode(["status" => "error", "message" => "Campo 'usernames' obrigatório (array)."]);
-    exit;
-}
-
 try {
     $pdo = DB::getInstance();
 
-    // Valida token
-    $stmtEst = $pdo->prepare("SELECT id FROM estabelecimentos WHERE cliente_token = :token AND ativo = 1 LIMIT 1");
-    $stmtEst->execute([':token' => $token]);
-    $est = $stmtEst->fetch();
+    // 1. Validar Token
+    $stmtEstab = $pdo->prepare("SELECT id FROM estabelecimentos WHERE cliente_token = ? AND ativo = 1");
+    $stmtEstab->execute([$token]);
+    $estab = $stmtEstab->fetch();
 
-    if (!$est) {
+    if (!$estab) {
         http_response_code(403);
-        echo json_encode(["status" => "error", "message" => "Token inválido."]);
+        echo json_encode(["status" => "error", "message" => "Não autorizado."]);
         exit;
     }
 
-    // Monta CPFs formatados a partir dos usernames (números puros)
-    // O banco guarda CPF formatado (999.999.999-99), username é só números
-    $updated = 0;
-    foreach ($usernames as $username) {
-        $username = preg_replace('/\D/', '', $username); // Garante que é só números
-        if (strlen($username) !== 11) continue;
+    // 2. Atualizar status para synced em lote
+    $placeholders = implode(',', array_fill(0, count($input['usernames']), '?'));
+    $sql = "UPDATE leads SET mikrotik_sync_status = 'synced', mikrotik_synced_at = NOW() 
+            WHERE estabelecimento_id = ? AND cpf IN ($placeholders)";
+    
+    // Como os usernames enviados pelo MikroTik são o CPF limpo, precisamos garantir que bate
+    // O ideal seria que o MikroTik enviasse o CPF formatado ou que o banco tivesse uma coluna cpf_limpo.
+    // Para simplificar, vamos assumir que o banco tem o CPF que bate com o enviado ou ajustar o SQL.
+    
+    // Ajuste: vamos remover a formatação do CPF no SQL da busca para bater com o username limpo do MikroTik
+    $sql = "UPDATE leads SET mikrotik_sync_status = 'synced', mikrotik_synced_at = NOW() 
+            WHERE estabelecimento_id = ? AND REPLACE(REPLACE(cpf, '.', ''), '-', '') IN ($placeholders)";
 
-        // Formata no padrão do banco
-        $cpf = substr($username, 0, 3) . '.' . substr($username, 3, 3) . '.' 
-             . substr($username, 6, 3) . '-' . substr($username, 9, 2);
+    $stmtUpdate = $pdo->prepare($sql);
+    $params = array_merge([$estab['id']], $input['usernames']);
+    $stmtUpdate->execute($params);
 
-        $stmt = $pdo->prepare("
-            UPDATE leads
-            SET mikrotik_sync_status = 'synced', mikrotik_synced_at = NOW()
-            WHERE estabelecimento_id = :estab_id
-              AND cpf = :cpf
-              AND mikrotik_sync_status = 'pending'
-        ");
-        $stmt->execute([':estab_id' => $est['id'], ':cpf' => $cpf]);
-        $updated += $stmt->rowCount();
-    }
-
-    echo json_encode(["status" => "success", "synced" => $updated]);
+    echo json_encode(["status" => "success", "updated" => $stmtUpdate->rowCount()]);
 
 } catch (Throwable $e) {
     http_response_code(500);
