@@ -34,8 +34,18 @@ try {
     $boasVindasEscaped = addslashes($est['boas_vindas']);
 
     $logoUrl = $est['logo_url'];
-    if (strpos($logoUrl, '/uploads/') === 0) {
-        $logoUrl = "https://api.megatecnologias.com" . $logoUrl;
+    $isLocalLogo = false;
+    $localLogoPath = '';
+    $mikrotikLogoPath = '';
+
+    if (strpos($logoUrl, '/uploads/logos/') === 0) {
+        $isLocalLogo = true;
+        $localLogoPath = __DIR__ . '/../..' . $logoUrl; 
+        $ext = pathinfo($localLogoPath, PATHINFO_EXTENSION) ?: 'png';
+        $mikrotikLogoPath = 'img/logo_cliente.' . $ext;
+        
+        // Caminho relativo dentro da pasta do MikroTik
+        $logoUrl = $mikrotikLogoPath; 
     }
 
     $configBlock = <<<JS
@@ -102,6 +112,11 @@ JS;
         if (file_exists($fullPath)) {
             $zip->addFile($fullPath, 'hotspot/' . $f);
         }
+    }
+
+    // Incluir o arquivo de logo fisicamente no ZIP se existir
+    if ($isLocalLogo && file_exists($localLogoPath)) {
+        $zip->addFile($localLogoPath, 'hotspot/' . $mikrotikLogoPath);
     }
 
     $zip->close();
