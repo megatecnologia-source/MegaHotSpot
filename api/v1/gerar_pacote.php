@@ -33,12 +33,17 @@ try {
     $lgpdTextoEscaped = addslashes($lgpdTexto);
     $boasVindasEscaped = addslashes($est['boas_vindas']);
 
+    $logoUrl = $est['logo_url'];
+    if (strpos($logoUrl, '/uploads/') === 0) {
+        $logoUrl = "https://api.megatecnologias.com" . $logoUrl;
+    }
+
     $configBlock = <<<JS
 const HOTSPOT_CONFIG = {
   apiUrl : "https://api.megatecnologias.com/api/v1/sync.php",
   token  : "{$est['cliente_token']}",
   nome          : "{$nomeEscaped}",
-  logoUrl       : "{$est['logo_url']}",
+  logoUrl       : "{$logoUrl}",
   corPrimaria   : "{$est['cor_primaria']}",
   corSecundaria : "{$est['cor_secundaria']}",
   corFundo1     : "{$est['cor_fundo1']}",

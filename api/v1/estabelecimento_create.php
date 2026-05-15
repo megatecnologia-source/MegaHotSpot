@@ -29,7 +29,30 @@ function validarHex(string $cor): string {
     return preg_match('/^#[0-9A-Fa-f]{6}$/', $cor) ? $cor : '#6C63FF';
 }
 
-$input = json_decode(file_get_contents('php://input'), true);
+$input = $_POST;
+
+// Upload da Logo (se aplicável)
+$logo_url = $input['logo_url'] ?? '';
+if (($input['logo_type'] ?? 'url') === 'file' && isset($_FILES['logo_file']) && $_FILES['logo_file']['error'] === UPLOAD_ERR_OK) {
+    $file = $_FILES['logo_file'];
+    $allowed_types = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
+    $max_size = 2 * 1024 * 1024; // 2MB
+
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+
+    if (in_array($mime, $allowed_types) && $file['size'] <= $max_size) {
+        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+        if ($mime === 'image/svg+xml') $ext = 'svg'; // Corrige extensão de SVG
+        $filename = uuid4() . '.' . $ext;
+        $dest = __DIR__ . '/../../uploads/logos/' . $filename;
+        if (move_uploaded_file($file['tmp_name'], $dest)) {
+            $logo_url = '/uploads/logos/' . $filename;
+        }
+    }
+}
+$input['logo_url'] = $logo_url;
 
 // Validação básica
 if (empty($input['nome']) || empty($input['email_login']) || empty($input['password'])) {

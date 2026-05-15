@@ -90,8 +90,19 @@ require_once __DIR__ . '/auth.php';
                             <div class="col-md-8">
                                 <div class="row g-3">
                                     <div class="col-12">
-                                        <label class="form-label">Logo URL</label>
-                                        <input type="url" name="logo_url" class="form-control" placeholder="https://...">
+                                        <label class="form-label">Logo (URL ou Upload)</label>
+                                        <div class="d-flex gap-3 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="logo_type" id="logo_type_url" value="url" checked>
+                                                <label class="form-check-label" for="logo_type_url">Usar URL</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="logo_type" id="logo_type_file" value="file">
+                                                <label class="form-check-label" for="logo_type_file">Fazer Upload</label>
+                                            </div>
+                                        </div>
+                                        <input type="url" name="logo_url" id="input_logo_url" class="form-control" placeholder="https://...">
+                                        <input type="file" name="logo_file" id="input_logo_file" class="form-control d-none" accept="image/png, image/jpeg, image/webp, image/svg+xml">
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Cor Primária (Botões)</label>
@@ -209,6 +220,19 @@ document.getElementById('lgpd_nome').addEventListener('input', (e) => {
     document.getElementById('lgpd_texto').value = texto;
 });
 
+// Toggle Logo Input
+document.querySelectorAll('input[name="logo_type"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+        if (e.target.value === 'url') {
+            document.getElementById('input_logo_url').classList.remove('d-none');
+            document.getElementById('input_logo_file').classList.add('d-none');
+        } else {
+            document.getElementById('input_logo_url').classList.add('d-none');
+            document.getElementById('input_logo_file').classList.remove('d-none');
+        }
+    });
+});
+
 updatePreview();
 
 // Submit
@@ -224,9 +248,8 @@ document.getElementById('formNovo').addEventListener('submit', async (e) => {
         const formData = new FormData(e.target);
         const res = await fetch('../api/v1/estabelecimento_create.php', {
             method: 'POST',
-            body: JSON.stringify(Object.fromEntries(formData)),
+            body: formData,
             headers: { 
-                'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': '<?= $_SESSION['csrf_token'] ?>'
             }
         });

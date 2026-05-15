@@ -114,8 +114,22 @@ try {
                             <div class="col-md-8">
                                 <div class="row g-3">
                                     <div class="col-12">
-                                        <label class="form-label">Logo URL</label>
-                                        <input type="url" name="logo_url" class="form-control" value="<?= htmlspecialchars($est['logo_url']) ?>">
+                                        <label class="form-label">Logo (URL ou Upload)</label>
+                                        <div class="d-flex gap-3 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="logo_type" id="logo_type_url" value="url" checked>
+                                                <label class="form-check-label" for="logo_type_url">Usar URL</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="logo_type" id="logo_type_file" value="file">
+                                                <label class="form-check-label" for="logo_type_file">Fazer Upload</label>
+                                            </div>
+                                        </div>
+                                        <input type="text" name="logo_url" id="input_logo_url" class="form-control" placeholder="https://..." value="<?= htmlspecialchars($est['logo_url'] ?? '') ?>">
+                                        <input type="file" name="logo_file" id="input_logo_file" class="form-control d-none" accept="image/png, image/jpeg, image/webp, image/svg+xml">
+                                        <?php if (!empty($est['logo_url']) && strpos($est['logo_url'], '/uploads/logos/') !== false): ?>
+                                            <small class="text-muted d-block mt-1">Logo atual: <a href="..<?= htmlspecialchars($est['logo_url']) ?>" target="_blank">Ver Imagem</a></small>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Cor Primária (Botões)</label>
@@ -195,6 +209,19 @@ function updatePreview() {
     document.getElementById('preview_bg').style.background = `linear-gradient(135deg, ${bg1} 0%, ${bg2} 100%)`;
 }
 document.querySelectorAll('input[type=color]').forEach(input => input.addEventListener('input', updatePreview));
+// Toggle Logo Input
+document.querySelectorAll('input[name="logo_type"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+        if (e.target.value === 'url') {
+            document.getElementById('input_logo_url').classList.remove('d-none');
+            document.getElementById('input_logo_file').classList.add('d-none');
+        } else {
+            document.getElementById('input_logo_url').classList.add('d-none');
+            document.getElementById('input_logo_file').classList.remove('d-none');
+        }
+    });
+});
+
 updatePreview();
 
 // Submit Update
@@ -209,9 +236,8 @@ document.getElementById('formEditar').addEventListener('submit', async (e) => {
         const formData = new FormData(e.target);
         const res = await fetch('../api/v1/estabelecimento_update.php', {
             method: 'POST',
-            body: JSON.stringify(Object.fromEntries(formData)),
+            body: formData,
             headers: { 
-                'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': '<?= $_SESSION['csrf_token'] ?>'
             }
         });
