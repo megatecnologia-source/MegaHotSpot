@@ -40,11 +40,11 @@ try {
 
     if (strpos($logoUrl, '/uploads/logos/') === 0) {
         $isLocalLogo = true;
-        $localLogoPath = __DIR__ . '/../..' . $logoUrl; 
+        $baseDir = dirname(__DIR__, 2);
+        $localLogoPath = $baseDir . $logoUrl; 
         $ext = pathinfo($localLogoPath, PATHINFO_EXTENSION) ?: 'png';
         $mikrotikLogoPath = 'img/logo_cliente.' . $ext;
         
-        // Caminho relativo dentro da pasta do MikroTik
         $logoUrl = $mikrotikLogoPath; 
     }
 
@@ -115,8 +115,10 @@ JS;
     }
 
     // Incluir o arquivo de logo fisicamente no ZIP se existir
-    if ($isLocalLogo && file_exists($localLogoPath)) {
-        $zip->addFile($localLogoPath, 'hotspot/' . $mikrotikLogoPath);
+    if ($isLocalLogo && !empty($localLogoPath) && file_exists($localLogoPath)) {
+        if (!$zip->addFile($localLogoPath, 'hotspot/' . $mikrotikLogoPath)) {
+            // Se falhar ao adicionar, talvez logar ou apenas ignorar
+        }
     }
 
     $zip->close();

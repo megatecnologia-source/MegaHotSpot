@@ -44,13 +44,26 @@ if (($input['logo_type'] ?? 'url') === 'file' && isset($_FILES['logo_file']) && 
 
     if (in_array($mime, $allowed_types) && $file['size'] <= $max_size) {
         $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-        if ($mime === 'image/svg+xml') $ext = 'svg'; // Corrige extensão de SVG
+        if ($mime === 'image/svg+xml') $ext = 'svg';
         $filename = uuid4() . '.' . $ext;
         $dest = __DIR__ . '/../../uploads/logos/' . $filename;
+        
         if (move_uploaded_file($file['tmp_name'], $dest)) {
             $logo_url = '/uploads/logos/' . $filename;
+        } else {
+            http_response_code(500);
+            echo json_encode(["status" => "error", "message" => "Erro ao salvar arquivo no servidor. Verifique permissões da pasta uploads/logos."]);
+            exit;
         }
+    } else {
+        http_response_code(400);
+        echo json_encode(["status" => "error", "message" => "Arquivo inválido ou muito grande. Use PNG, JPG ou WEBP até 2MB."]);
+        exit;
     }
+} elseif (($input['logo_type'] ?? 'url') === 'file' && isset($_FILES['logo_file'])) {
+    http_response_code(400);
+    echo json_encode(["status" => "error", "message" => "Erro no upload do arquivo (Código: " . $_FILES['logo_file']['error'] . ")"]);
+    exit;
 }
 $input['logo_url'] = $logo_url;
 

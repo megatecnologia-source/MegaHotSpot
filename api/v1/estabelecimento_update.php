@@ -50,8 +50,20 @@ if (($input['logo_type'] ?? 'url') === 'file' && isset($_FILES['logo_file']) && 
         $dest = __DIR__ . '/../../uploads/logos/' . $filename;
         if (move_uploaded_file($file['tmp_name'], $dest)) {
             $logo_url = '/uploads/logos/' . $filename;
+        } else {
+            http_response_code(500);
+            echo json_encode(["status" => "error", "message" => "Erro ao salvar arquivo no servidor. Verifique permissões da pasta uploads/logos."]);
+            exit;
         }
+    } else {
+        http_response_code(400);
+        echo json_encode(["status" => "error", "message" => "Arquivo inválido ou muito grande. Use PNG, JPG ou WEBP até 2MB."]);
+        exit;
     }
+} elseif (($input['logo_type'] ?? 'url') === 'file' && isset($_FILES['logo_file'])) {
+    http_response_code(400);
+    echo json_encode(["status" => "error", "message" => "Erro no upload do arquivo (Código: " . $_FILES['logo_file']['error'] . ")"]);
+    exit;
 }
 $input['logo_url'] = $logo_url;
 
