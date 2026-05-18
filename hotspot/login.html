@@ -187,20 +187,21 @@
 
     function fazerLoginMikroTik(cpf, senha) {
         cpf = apenasNumeros(cpf);
-        $(if chap-id)
-        document.getElementById('h-username').value = cpf;
-        document.getElementById('h-password').value = hexMD5('$(chap-id)' + senha + '$(chap-challenge)');
-        document.sendin.submit();
-        $(else)
-        const f = document.createElement('form');
-        f.method = 'post'; f.action = '$(link-login-only)';
-        const addInput = (name, val) => { const i = document.createElement('input'); i.type='hidden'; i.name=name; i.value=val; f.appendChild(i); };
-        addInput('username', cpf);
-        addInput('password', senha);
-        addInput('dst', '$(link-orig)');
-        document.body.appendChild(f);
-        f.submit();
-        $(endif)
+        const chapId = '$(chap-id)';
+        if (chapId) {
+            document.getElementById('h-username').value = cpf;
+            document.getElementById('h-password').value = hexMD5(chapId + senha + '$(chap-challenge)');
+            document.sendin.submit();
+        } else {
+            const f = document.createElement('form');
+            f.method = 'post'; f.action = '$(link-login-only)';
+            const addInput = (name, val) => { const i = document.createElement('input'); i.type='hidden'; i.name=name; i.value=val; f.appendChild(i); };
+            addInput('username', cpf);
+            addInput('password', senha);
+            addInput('dst', '$(link-orig)');
+            document.body.appendChild(f);
+            f.submit();
+        }
     }
 
     // Inicialização da UI e Branding
@@ -219,9 +220,7 @@
         const root = document.documentElement;
         if (HOTSPOT_CONFIG.corPrimaria) root.style.setProperty('--cor-primaria', HOTSPOT_CONFIG.corPrimaria);
         if (HOTSPOT_CONFIG.corSecundaria) root.style.setProperty('--cor-secundaria', HOTSPOT_CONFIG.corSecundaria);
-        if (HOTSPOT_CONFIG.corFundo1 && HOTSPOT_CONFIG.corFundo2) {
-            document.body.style.background = `linear-gradient(135deg, ${HOTSPOT_CONFIG.corFundo1} 0%, ${HOTSPOT_CONFIG.corFundo2} 100%)`;
-        }
+        if (HOTSPOT_CONFIG.corFundo1) root.style.setProperty('--bg-color', HOTSPOT_CONFIG.corFundo1);
 
         // Renderizar LGPD
         const lgpd = HOTSPOT_CONFIG.lgpd;

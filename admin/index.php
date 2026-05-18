@@ -9,10 +9,15 @@ require_once __DIR__ . '/../config/db.php';
 $pdo = DB::getInstance();
 $idEstab = $_SESSION['estabelecimento_id'];
 
-// 1. Carregar Nome do Estabelecimento
-$stmtEst = $pdo->prepare("SELECT nome FROM estabelecimentos WHERE id = ?");
+// 1. Carregar Nome do Estabelecimento e Cores
+$stmtEst = $pdo->prepare("SELECT nome, cor_primaria, cor_secundaria, cor_fundo1, cor_fundo2 FROM estabelecimentos WHERE id = ?");
 $stmtEst->execute([$idEstab]);
-$nomeEstab = $stmtEst->fetchColumn();
+$estab = $stmtEst->fetch(PDO::FETCH_ASSOC);
+$nomeEstab = $estab['nome'];
+$corPrimaria = $estab['cor_primaria'] ?? '#6C63FF';
+$corSecundaria = $estab['cor_secundaria'] ?? '#4CAF50';
+$corFundo1 = $estab['cor_fundo1'] ?? '#0a0a0f';
+$corFundo2 = $estab['cor_fundo2'] ?? '#0a0a0f';
 
 // 2. Carregar Métricas
 $stats = [];
@@ -48,98 +53,349 @@ $stats['pendentes'] = $stmt->fetchColumn();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel Admin — <?= htmlspecialchars($nomeEstab) ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- We keep Bootstrap Icons for convenience as it was already there and fits the "Industrial" icon style well -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
-        body { background-color: #f8f9fa; }
-        .navbar { box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .card-stat { border: none; border-radius: 12px; transition: transform 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
-        .card-stat:hover { transform: translateY(-3px); }
-        .stat-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1rem; }
-        .table-card { background: #fff; border-radius: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.05); padding: 1.5rem; }
-        .search-box { position: relative; max-width: 400px; }
-        .search-box i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #adb5bd; }
-        .search-box input { padding-left: 40px; border-radius: 20px; border: 1px solid #dee2e6; }
+        :root {
+            --cor-primaria: <?= $corPrimaria ?>;
+            --cor-secundaria: <?= $corSecundaria ?>;
+            --bg-color: <?= $corFundo1 ?>;
+            --fg-color: #e2e8f0;
+            --border-color: #27272a;
+            --muted-color: #71717a;
+            --font-display: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Monaco, 'Courier New', monospace;
+            --font-body: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Monaco, 'Courier New', monospace;
+        }
+
+        /* Global Reset & Base */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--bg-color);
+            background-image: 
+                linear-gradient(var(--border-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border-color) 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: var(--fg-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header / Nav */
+        .admin-nav {
+            border-bottom: 2px solid var(--fg-color);
+            background-color: rgba(10, 10, 15, 0.95);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand {
+            font-family: var(--font-display);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--cor-primaria);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            font-size: 0.85rem;
+        }
+
+        .logout-btn {
+            color: var(--fg-color);
+            text-decoration: none;
+            border: 1px solid var(--fg-color);
+            padding: 0.4rem 1rem;
+            text-transform: uppercase;
+            font-family: var(--font-display);
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background-color: var(--cor-primaria);
+            border-color: var(--cor-primaria);
+            color: #fff;
+        }
+
+        /* Layout Container */
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+            flex: 1;
+        }
+
+        /* Grid for Cards */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            background-color: rgba(10, 10, 15, 0.95);
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+            box-shadow: 4px 4px 0px 0px var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .stat-card.alert-border {
+            border-left: 4px solid var(--cor-primaria);
+        }
+
+        .stat-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--muted-color);
+        }
+
+        .stat-value {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--fg-color);
+        }
+
+        .stat-value.accent {
+            color: var(--cor-primaria);
+        }
+
+        /* Table Section */
+        .table-section {
+            background-color: rgba(10, 10, 15, 0.95);
+            border: 2px solid var(--fg-color);
+            padding: 2rem;
+            box-shadow: 8px 8px 0px 0px var(--border-color);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+        }
+
+        .section-title {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Search Box */
+        .search-box {
+            position: relative;
+            max-width: 300px;
+            width: 100%;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.5rem 0.5rem 0.5rem 2rem;
+            background: #12121a;
+            border: 1px solid var(--border-color);
+            color: var(--fg-color);
+            font-family: var(--font-body);
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted-color);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--fg-color);
+            background: transparent;
+            color: var(--fg-color);
+            font-family: var(--font-display);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background-color: var(--cor-primaria);
+            border-color: var(--cor-primaria);
+            color: #fff;
+        }
+
+        /* Table */
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.85rem;
+        }
+
+        th, td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            font-family: var(--font-display);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--muted-color);
+            font-weight: 600;
+        }
+
+        tr:hover td {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.7rem;
+            font-family: var(--font-display);
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .bg-success { border: 1px solid var(--cor-secundaria); color: var(--cor-secundaria); }
+        .bg-warning { border: 1px solid #eab308; color: #eab308; }
+        .bg-danger { border: 1px solid #ef4444; color: #ef4444; }
+
+        /* Pagination */
+        .pagination-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 2rem;
+            font-size: 0.8rem;
+            color: var(--muted-color);
+        }
+
+        .pagination-btns {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .page-link {
+            padding: 0.3rem 0.8rem;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--fg-color);
+            cursor: pointer;
+            font-family: var(--font-display);
+        }
+
+        .page-link:hover:not(:disabled) {
+            border-color: var(--cor-primaria);
+            color: var(--cor-primaria);
+        }
+
+        .page-link:disabled {
+            color: var(--muted-color);
+            cursor: not-allowed;
+        }
+
+        /* Utilities */
+        .fw-bold { font-weight: 700; }
+        .text-muted { color: var(--muted-color); }
+        .small { font-size: 0.8rem; }
     </style>
 </head>
 <body>
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark py-3">
-        <div class="container">
-            <a class="navbar-brand fw-bold" href="#"><i class="bi bi-wifi me-2 text-primary"></i>MEGA HOTSPOT</a>
-            <div class="d-flex align-items-center text-white">
-                <span class="me-3 d-none d-md-block small opacity-75"><?= htmlspecialchars($nomeEstab) ?></span>
-                <a href="logout.php" class="btn btn-outline-light btn-sm rounded-pill px-3">Sair</a>
-            </div>
+    <nav class="admin-nav">
+        <a class="brand" href="#"><i class="bi bi-wifi"></i> MEGA HOTSPOT</a>
+        <div class="user-info">
+            <span class="d-none d-md-block opacity-75"><?= htmlspecialchars($nomeEstab) ?></span>
+            <a href="logout.php" class="logout-btn">Sair</a>
         </div>
     </nav>
 
-    <div class="container py-5">
+    <div class="container">
         
         <!-- Métricas -->
-        <div class="row g-4 mb-5">
-            <div class="col-6 col-lg-3">
-                <div class="card card-stat p-3 h-100">
-                    <div class="stat-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-people"></i></div>
-                    <div class="small text-muted mb-1">Total de Leads</div>
-                    <div class="h3 fw-bold mb-0"><?= number_format($stats['total'], 0, ',', '.') ?></div>
-                </div>
+        <div class="metrics-grid">
+            <div class="stat-card">
+                <div class="stat-title">Total de Leads</div>
+                <div class="stat-value"><?= number_format($stats['total'], 0, ',', '.') ?></div>
             </div>
-            <div class="col-6 col-lg-3">
-                <div class="card card-stat p-3 h-100 border-start border-primary border-4">
-                    <div class="stat-icon bg-success bg-opacity-10 text-success"><i class="bi bi-calendar-check"></i></div>
-                    <div class="small text-muted mb-1">Capturados Hoje</div>
-                    <div class="h3 fw-bold mb-0 text-success"><?= $stats['hoje'] ?></div>
-                </div>
+            <div class="stat-card alert-border">
+                <div class="stat-title">Capturados Hoje</div>
+                <div class="stat-value accent"><?= $stats['hoje'] ?></div>
             </div>
-            <div class="col-6 col-lg-3">
-                <div class="card card-stat p-3 h-100">
-                    <div class="stat-icon bg-info bg-opacity-10 text-info"><i class="bi bi-graph-up"></i></div>
-                    <div class="small text-muted mb-1">Últimos 7 dias</div>
-                    <div class="h3 fw-bold mb-0"><?= $stats['semana'] ?></div>
-                </div>
+            <div class="stat-card">
+                <div class="stat-title">Últimos 7 dias</div>
+                <div class="stat-value"><?= $stats['semana'] ?></div>
             </div>
-            <div class="col-6 col-lg-3">
-                <div class="card card-stat p-3 h-100">
-                    <div class="stat-icon bg-warning bg-opacity-10 text-warning"><i class="bi bi-calendar-range"></i></div>
-                    <div class="small text-muted mb-1">Neste Mês</div>
-                    <div class="h3 fw-bold mb-0"><?= $stats['mes'] ?></div>
-                </div>
+            <div class="stat-card">
+                <div class="stat-title">Neste Mês</div>
+                <div class="stat-value"><?= $stats['mes'] ?></div>
             </div>
-            <div class="col-12 col-lg-3">
-                <div class="card card-stat p-3 h-100 <?= $stats['pendentes'] > 0 ? 'border-start border-warning border-4' : '' ?>">
-                    <div class="stat-icon bg-warning bg-opacity-10 text-warning"><i class="bi bi-arrow-repeat"></i></div>
-                    <div class="small text-muted mb-1">Pendentes de Sync</div>
-                    <div class="h3 fw-bold mb-0 <?= $stats['pendentes'] > 0 ? 'text-warning' : 'text-success' ?>">
-                        <?= $stats['pendentes'] ?>
-                    </div>
-                    <small class="text-muted d-block mt-1"><?= $stats['pendentes'] > 0 ? 'aguardando MikroTik' : 'tudo sincronizado' ?></small>
-                </div>
+            <div class="stat-card <?= $stats['pendentes'] > 0 ? 'alert-border' : '' ?>">
+                <div class="stat-title">Pendentes de Sync</div>
+                <div class="stat-value <?= $stats['pendentes'] > 0 ? 'accent' : '' ?>"><?= $stats['pendentes'] ?></div>
+                <div class="stat-title" style="font-size: 0.65rem; margin-top: auto;"><?= $stats['pendentes'] > 0 ? 'aguardando MikroTik' : 'tudo sincronizado' ?></div>
             </div>
         </div>
 
         <!-- Tabela Principal -->
-        <div class="table-card">
-            <div class="row align-items-center mb-4 g-3">
-                <div class="col-md-4">
-                    <h4 class="mb-0 fw-bold">Leads</h4>
-                </div>
-                <div class="col-md-4">
+        <div class="table-section">
+            <div class="section-header">
+                <h2 class="section-title">Leads</h2>
+                <div style="display: flex; gap: 1rem; align-items: center;">
                     <div class="search-box">
                         <i class="bi bi-search"></i>
-                        <input type="text" id="input-busca" class="form-control" placeholder="Buscar por nome, CPF ou WhatsApp...">
+                        <input type="text" id="input-busca" placeholder="Buscar por nome, CPF ou WhatsApp...">
                     </div>
-                </div>
-                <div class="col-md-4 text-md-end">
-                    <a href="../api/v1/export.php" class="btn btn-outline-dark rounded-pill px-4">
-                        <i class="bi bi-download me-2"></i>Exportar CSV
+                    <a href="../api/v1/export.php" class="btn">
+                        <i class="bi bi-download"></i> Exportar CSV
                     </a>
                 </div>
             </div>
 
             <div class="table-responsive">
-                <table class="table table-hover align-middle" id="tabela-leads">
-                    <thead class="table-light">
+                <table id="tabela-leads">
+                    <thead>
                         <tr>
                             <th>Nome</th>
                             <th>CPF</th>
@@ -147,24 +403,22 @@ $stats['pendentes'] = $stmt->fetchColumn();
                             <th>E-mail</th>
                             <th>Data Cadastro</th>
                             <th>Sync</th>
-                            <th class="text-end">Ação</th>
+                            <th style="text-align: right;">Ação</th>
                         </tr>
                     </thead>
                     <tbody id="lista-leads">
-                        <tr><td colspan="6" class="text-center py-5"><div class="spinner-border text-primary"></div></td></tr>
+                        <tr><td colspan="7" style="text-align: center; padding: 3rem;"><div class="spinner-border text-primary"></div></td></tr>
                     </tbody>
                 </table>
             </div>
 
             <!-- Paginação -->
-            <div class="d-flex justify-content-between align-items-center mt-4">
-                <div class="small text-muted" id="info-paginacao">Mostrando 0 de 0 leads</div>
-                <nav>
-                    <ul class="pagination pagination-sm mb-0 rounded-pill overflow-hidden">
-                        <li class="page-item"><button class="page-link" id="btn-prev">Anterior</button></li>
-                        <li class="page-item"><button class="page-link" id="btn-next">Próximo</button></li>
-                    </ul>
-                </nav>
+            <div class="pagination-container">
+                <div id="info-paginacao">Mostrando 0 de 0 leads</div>
+                <div class="pagination-btns">
+                    <button class="page-link" id="btn-prev">Anterior</button>
+                    <button class="page-link" id="btn-next">Próximo</button>
+                </div>
             </div>
         </div>
     </div>
@@ -183,7 +437,7 @@ $stats['pendentes'] = $stmt->fetchColumn();
             const data = await res.json();
             
             if (data.leads.length === 0) {
-                lista.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted">Nenhum registro encontrado.</td></tr>';
+                lista.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 3rem;" class="text-muted">Nenhum registro encontrado.</td></tr>';
                 info.textContent = 'Mostrando 0 de 0 leads';
                 return;
             }
@@ -196,8 +450,8 @@ $stats['pendentes'] = $stmt->fetchColumn();
                     <td class="small">${lead.email || '-'}</td>
                     <td class="small text-muted">${formatarData(lead.data_cadastro)}</td>
                     <td>${getSyncBadge(lead.mikrotik_sync_status)}</td>
-                    <td class="text-end">
-                        <a href="https://wa.me/${lead.whatsapp.replace(/\D/g, '')}" target="_blank" class="btn btn-sm btn-success rounded-pill px-3">
+                    <td style="text-align: right;">
+                        <a href="https://wa.me/${lead.whatsapp.replace(/\D/g, '')}" target="_blank" class="btn" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;">
                             <i class="bi bi-whatsapp"></i> <span class="d-none d-sm-inline">WhatsApp</span>
                         </a>
                     </td>
@@ -208,11 +462,11 @@ $stats['pendentes'] = $stmt->fetchColumn();
             const fim    = Math.min(data.pagina * data.por_pagina, data.total);
             info.textContent = `Mostrando ${inicio} a ${fim} de ${data.total} leads`;
 
-            document.getElementById('btn-prev').parentElement.classList.toggle('disabled', paginaAtual <= 1);
-            document.getElementById('btn-next').parentElement.classList.toggle('disabled', fim >= data.total);
+            document.getElementById('btn-prev').disabled = (paginaAtual <= 1);
+            document.getElementById('btn-next').disabled = (fim >= data.total);
 
         } catch (err) {
-            lista.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-danger">Erro ao carregar dados.</td></tr>';
+            lista.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 3rem;" class="text-danger">Erro ao carregar dados.</td></tr>';
         }
     }
 
@@ -223,7 +477,7 @@ $stats['pendentes'] = $stmt->fetchColumn();
 
     function getSyncBadge(status) {
         if (status === 'synced')  return '<span class="badge bg-success">✓ Sync</span>';
-        if (status === 'pending') return '<span class="badge bg-warning text-dark">⏳ Pendente</span>';
+        if (status === 'pending') return '<span class="badge bg-warning">⏳ Pendente</span>';
         return '<span class="badge bg-danger">✗ Erro</span>';
     }
 
